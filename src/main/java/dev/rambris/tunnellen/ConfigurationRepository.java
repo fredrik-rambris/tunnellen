@@ -9,17 +9,15 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ConfigurationRepository {
     private static final Logger log = (Logger) LoggerFactory.getLogger(ConfigurationRepository.class);
 
 
     static Configuration loadConfig(File file, int defaultPort) throws IOException {
-        var config = new Configuration(List.of(), Duration.ofMinutes(1), defaultPort);
+        var config = new Configuration(List.of(), Duration.ofMinutes(1), Duration.ofMinutes(1), defaultPort);
 
 
         try (var in = new FileReader(file)) {
@@ -29,7 +27,11 @@ public class ConfigurationRepository {
 
             var yaml = (Map<String, Object>) load.loadFromReader(in);
             config = Optional.ofNullable(yaml)
-                    .map(m -> new Configuration(parsePortForwards(m.get("portForwards")), parseDuration(m.get("keepAliveInterval"), Duration.ofMinutes(1)), getAsInt(m.getOrDefault("port", 3000))))
+                    .map(m -> new Configuration(
+                            parsePortForwards(m.get("portForwards")),
+                            parseDuration(m.get("keepAliveInterval"), Duration.ofMinutes(1)),
+                            parseDuration(m.get("refreshInterval"), Duration.ofMinutes(1)),
+                            getAsInt(m.getOrDefault("port", 3000))))
                     .orElse(config);
         } catch(IOException e) {
             System.err.println("Could not load config file: " + e.getMessage());
@@ -51,9 +53,23 @@ public class ConfigurationRepository {
                         Optional.ofNullable((String) m.get("namespace")).orElse("default"),
                         getAsInt(m.get("localPort")),
                         getIntAsString(m.get("remotePort")),
-                        getAsBoolean(m.get("startOnStartup"), false)
+                        getAsBoolean(m.get("startOnStartup"), false),
+                        Optional.ofNullable((String) m.get("type")).map(String::toUpperCase).map(Tunnel.Type::valueOf).orElse(null),
+                        parseDatabase(m.get("database"))
                 ))
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private static Database parseDatabase(Object o) {
+        return Optional.ofNullable(o)
+                .filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .map(m -> new Database(
+                        Database.Kind.valueOf(((String) m.get("type")).toUpperCase()),
+                        (String) m.get("name"),
+                        (String) m.get("username")
+                ))
+                .orElse(null);
     }
 
     private static Integer getAsInt(Object o) {

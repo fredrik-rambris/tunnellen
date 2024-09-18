@@ -14,8 +14,8 @@ public class KeepAlive {
     private static final Logger log = (Logger) LoggerFactory.getLogger(KeepAlive.class);
     private List<Tunnel> tunnels = new ArrayList<>();
     private boolean running = false;
-    private Timer timer = new Timer("Keepalive");
-    private final Duration keepAliveInterval;
+    private Timer timer;
+    private Duration keepAliveInterval;
 
     public KeepAlive(Duration keepAliveInterval) {
         this.keepAliveInterval = keepAliveInterval;
@@ -39,7 +39,7 @@ public class KeepAlive {
                 .parallelStream()
                 .filter(e -> running && e.getLastCheck().isBefore(LocalDateTime.now().minusMinutes(1)))
                 .forEach(t -> {
-                    if (t.isStarted() && (!t.isRunning() || !t.isAlive())) {
+                    if (t.isStarted() && !t.isAlive()) {
                         log.info("Restarting tunnel");
                         t.stop();
                         t.start();
@@ -49,19 +49,31 @@ public class KeepAlive {
 
     public void start() {
         if(!running) {
-            running = true;
-
+            timer = new Timer("Keepalive");
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
                     checkTunnels();
                 }
             }, keepAliveInterval.toMillis(), keepAliveInterval.toMillis());
+
+            running = true;
         }
     }
 
     public void stop() {
-        running = false;
-        timer.cancel();
+        if(running) {
+            running = false;
+            timer.cancel();
+            timer = null;
+        }
+    }
+
+    public void setKeepAliveInterval(Duration keepAliveInterval) {
+        this.keepAliveInterval = keepAliveInterval;
+        if(running) {
+            stop();
+            start();
+        }
     }
 }

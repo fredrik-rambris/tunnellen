@@ -10,32 +10,41 @@ import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class Tunnel implements Comparable<Tunnel> {
+    public enum Type {
+        HTTP,
+        DATABASE
+    }
+
     private final Logger log;
     private final String context;
     private final String target;
     private final int localPort;
     private final String destinationPort;
     private final Optional<String> namespace;
+    private final Optional<Type> type;
+    private final Database database;
     private final boolean startOnStartup;
     private Process proc = null;
     private String id;
     private LocalDateTime lastCheck = LocalDateTime.MIN;
     private AsyncInputStreamReader outputReader;
 
-    public Tunnel(String context, String target, String namespace, int localPort, String destinationPort, boolean startOnStartup) {
+    public Tunnel(String context, String target, String namespace, int localPort, String destinationPort, boolean startOnStartup, Type type, Database database) {
         log = (Logger) LoggerFactory.getLogger("tunnel." + context + "." + target + "[" + localPort + ":" + destinationPort + "]");
         this.context = context;
         this.target = target;
         this.namespace = Optional.ofNullable(namespace);
+        this.type = Optional.ofNullable(type);
         this.localPort = localPort;
         this.destinationPort = destinationPort;
         this.startOnStartup = startOnStartup;
-
+        this.database = database;
 
         try {
             var digest = MessageDigest.getInstance("SHA-256").digest((context + target + namespace + localPort + destinationPort).getBytes());
@@ -135,8 +144,39 @@ public class Tunnel implements Comparable<Tunnel> {
         return lastCheck;
     }
 
+    public Optional<Type> getType() {
+        return type;
+    }
+
+    public Database getDatabase() {
+        return database;
+    }
+
     @Override
     public int compareTo(Tunnel o) {
         return id.compareTo(o.id);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Tunnel tunnel)) return false;
+        return Objects.equals(id, tunnel.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
+    @Override
+    public String toString() {
+        return "Tunnel{" +
+               "context='" + context + '\'' +
+               ", target='" + target + '\'' +
+               ", namespace=" + namespace +
+               ", localPort=" + localPort +
+               ", destinationPort='" + destinationPort + '\'' +
+               '}';
     }
 }
