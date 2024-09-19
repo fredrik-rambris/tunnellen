@@ -30,7 +30,7 @@ class FileWatcher {
 
     public void start(Path file, Callback callback) throws IOException {
         watchService = FileSystems.getDefault().newWatchService();
-        Path parent = file.getParent();
+        Path parent = file.toAbsolutePath().getParent();
         parent.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
         log.info("Going to watch " + file);
 

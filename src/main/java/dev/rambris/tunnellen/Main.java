@@ -21,7 +21,10 @@ public class Main {
     private static int DEFAULT_PORT = 3000;
     private static File CONFIG_FILE = new File("forwards.yaml");
 
+    static Version VERSION = new Version();
+
     public static void main(String[] args) throws Exception {
+        log.info("Starting tunnellen version {}", VERSION.getVersion());
         commandLine(args);
         config = ConfigurationRepository.loadConfig(CONFIG_FILE, DEFAULT_PORT);
         keepAlive = new KeepAlive(config.keepAliveInterval());
@@ -97,7 +100,7 @@ public class Main {
     }
 
     static void addTunnel(Tunnel tun) {
-        if(config.portForwards().stream().anyMatch(t -> t.getId().equals(tun.getId()))) {
+        if (config.portForwards().stream().anyMatch(t -> t.getId().equals(tun.getId()))) {
             log.error("Tunnel with id {} already exists", tun.getId());
             return;
         }
@@ -110,7 +113,7 @@ public class Main {
     }
 
     static void removeTunnel(String id) {
-        if(config.portForwards().stream().noneMatch(t -> t.getId().equals(id))) {
+        if (config.portForwards().stream().noneMatch(t -> t.getId().equals(id))) {
             log.error("Tunnel with id {} does not exist", id);
             return;
         }
@@ -152,7 +155,7 @@ public class Main {
                 keepAlive.setKeepAliveInterval(newConfig.keepAliveInterval());
             }
 
-            if(config.refreshInterval().compareTo(newConfig.refreshInterval()) != 0) {
+            if (config.refreshInterval().compareTo(newConfig.refreshInterval()) != 0) {
                 log.info("Refresh interval changed. Restarting server");
                 config = config.withRefreshInterval(newConfig.refreshInterval());
                 web.stop(0);

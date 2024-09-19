@@ -187,9 +187,12 @@ public class Web {
     private String footer() {
         return """
                 </main>
+                <footer>
+                <p>Version: %s. Copyright &copy; 2023 Fredrik Rambris</p>
+                </footer>
                 </body>
                 </html>
-                """;
+                """.formatted(Main.VERSION.getVersion());
     }
 
     private String index() {
@@ -215,6 +218,12 @@ public class Web {
                     width: fit-content;
                     block-size: fit-content;
                 
+                }
+                footer {
+                    margin: 1rem;
+                    color: #888;
+                    font-size: 75%;
+                    border-top: 1px solid #282828;
                 }
                 table {
                     border-collapse: collapse;
@@ -318,5 +327,4 @@ public class Web {
                 db.username()
         );
     }
-
 }
