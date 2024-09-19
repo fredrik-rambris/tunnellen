@@ -17,7 +17,7 @@ public class ConfigurationRepository {
 
 
     static Configuration loadConfig(File file, int defaultPort) throws IOException {
-        var config = new Configuration(List.of(), Duration.ofMinutes(1), Duration.ofMinutes(1), defaultPort);
+        var config = new Configuration(List.of(), List.of(), Duration.ofMinutes(1), Duration.ofMinutes(1), defaultPort);
 
 
         try (var in = new FileReader(file)) {
@@ -28,6 +28,7 @@ public class ConfigurationRepository {
             var yaml = (Map<String, Object>) load.loadFromReader(in);
             config = Optional.ofNullable(yaml)
                     .map(m -> new Configuration(
+                            parseGroups(m.get("groups")),
                             parsePortForwards(m.get("portForwards")),
                             parseDuration(m.get("keepAliveInterval"), Duration.ofMinutes(1)),
                             parseDuration(m.get("refreshInterval"), Duration.ofMinutes(1)),
@@ -41,6 +42,13 @@ public class ConfigurationRepository {
         return config;
     }
 
+    private static List<String> parseGroups(Object o) {
+        return Optional.ofNullable(o)
+                .filter(List.class::isInstance)
+                .map(l -> (List<String>) l)
+                .orElseGet(ArrayList::new);
+    }
+
     private static List<Tunnel> parsePortForwards(Object o) {
         return Optional.ofNullable(o)
                 .filter(List.class::isInstance)
@@ -48,6 +56,7 @@ public class ConfigurationRepository {
                 .stream().flatMap(Collection::stream)
                 .map(Map.class::cast)
                 .map(m -> new Tunnel(
+                        (String) Optional.ofNullable(m.get("group")).orElse("default"),
                         (String) m.get("context"),
                         (String) m.get("target"),
                         Optional.ofNullable((String) m.get("namespace")).orElse("default"),

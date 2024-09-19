@@ -120,9 +120,23 @@ public class Web {
 
         var host = getHost(httpExchange);
 
-        return header("Tunnels - Tunnellen") + "<table>\n<thead>\n<tr><th>Context</th><th>Target</th><th>Local port</th><th>State</th></tr>\n</thead>\n<tbody>\n" +
-               config.portForwards().stream().sorted(Comparator.comparing(Tunnel::isStartOnStartup).reversed().thenComparing(Tunnel::getTarget).thenComparing(Tunnel::getContext)).map(t -> tunnel(t, host)).collect(Collectors.joining("\n")) +
-               "\n</tbody>\n</table>\n" + footer();
+        var out = new StringBuilder();
+        out.append(header("Tunnels - Tunnellen") + "<table>\n<thead>\n<tr><th>Context</th><th>Target</th><th>Local port</th><th>State</th></tr>\n</thead>\n<tbody>\n");
+
+        config.groups().forEach(group -> {
+            out.append("<tr><th class=\"groupheader\" colspan=\"4\">%s</th></tr>\n".formatted(group));
+            out.append(config.portForwards().stream().filter(t -> t.getGroup().equals(group)).sorted(Comparator.comparing(Tunnel::isStartOnStartup).reversed().thenComparing(Tunnel::getTarget).thenComparing(Tunnel::getContext)).map(t -> tunnel(t, host)).collect(Collectors.joining("\n")));
+        });
+
+        var rest = config.portForwards().stream().filter(t -> config.groups().stream().noneMatch(g -> g.equals(t.getGroup()))).sorted(Comparator.comparing(Tunnel::isStartOnStartup).reversed().thenComparing(Tunnel::getTarget).thenComparing(Tunnel::getContext)).map(t -> tunnel(t, host)).collect(Collectors.joining("\n"));
+        if(!rest.isBlank()) {
+            if(!config.groups().isEmpty()) out.append("<tr><th class=\"groupheader\" colspan=\"4\">Other</th></tr>\n");
+            out.append(rest);
+        }
+
+        out.append("\n</tbody>\n</table>\n" + footer());
+
+        return out.toString();
     }
 
     private static String getHost(HttpExchange httpExchange) {
@@ -239,6 +253,9 @@ public class Web {
                 tr:nth-child(even) {
                     background-color: #1c1c1c;
                 }
+                th.groupheader {
+                    text-transform: capitalize;
+                }
                 tr:hover {
                     background-color: #222;
                 }
@@ -272,7 +289,7 @@ public class Web {
     private String intellij(String id, String host) {
         return config.portForwards().stream().filter(t -> t.getId().equals(id) && t.getType().isPresent() && t.getType().get() == Tunnel.Type.DATABASE && t.getDatabase() != null).findFirst().map(t -> {
             var db = t.getDatabase();
-            return generateDatasource(t.getContext(), db, host, t.getLocalPort());
+            return generateDatasource(t.getGroup(), db, host, t.getLocalPort());
         }).orElse("Not found");
     }
 

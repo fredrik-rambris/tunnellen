@@ -22,6 +22,7 @@ public class Tunnel implements Comparable<Tunnel> {
     }
 
     private final Logger log;
+    private final String group;
     private final String context;
     private final String target;
     private final int localPort;
@@ -35,8 +36,9 @@ public class Tunnel implements Comparable<Tunnel> {
     private LocalDateTime lastCheck = LocalDateTime.MIN;
     private AsyncInputStreamReader outputReader;
 
-    public Tunnel(String context, String target, String namespace, int localPort, String destinationPort, boolean startOnStartup, Type type, Database database) {
+    public Tunnel(String group, String context, String target, String namespace, int localPort, String destinationPort, boolean startOnStartup, Type type, Database database) {
         log = (Logger) LoggerFactory.getLogger("tunnel." + context + "." + target + "[" + localPort + ":" + destinationPort + "]");
+        this.group = group;
         this.context = context;
         this.target = target;
         this.namespace = Optional.ofNullable(namespace);
@@ -47,7 +49,7 @@ public class Tunnel implements Comparable<Tunnel> {
         this.database = database;
 
         try {
-            var digest = MessageDigest.getInstance("SHA-256").digest((context + target + namespace + localPort + destinationPort).getBytes());
+            var digest = MessageDigest.getInstance("SHA-256").digest((group + context + target + namespace + localPort + destinationPort).getBytes());
             id = UUID.nameUUIDFromBytes(digest).toString();
         } catch (NoSuchAlgorithmException e) {
             log.warn("Could not create UUID from SHA-256, using random UUID instead. {}", e.getMessage());
@@ -150,6 +152,10 @@ public class Tunnel implements Comparable<Tunnel> {
 
     public Database getDatabase() {
         return database;
+    }
+
+    public String getGroup() {
+        return group;
     }
 
     @Override
