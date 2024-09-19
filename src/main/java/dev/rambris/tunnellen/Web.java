@@ -207,6 +207,8 @@ public class Web {
                 body {
                     font-family: Arial, sans-serif;
                     margin: 0; padding: 0;
+                    background-color: #151515;
+                    color: #b0b0b0;
                 }
                 main {
                     margin: 1rem;
@@ -218,28 +220,29 @@ public class Web {
                     border-collapse: collapse;
                 }
                 th, td {
-                    border: 1px solid #ddd;
+                    border: 1px solid #444;
                     padding: 8px;
                     text-align: left;
                 }
                 th {
-                    background-color: #f2f2f2;
+                    background-color: #282828;
                 }
                 tr:nth-child(even) {
-                    background-color: #f2f2f2;
+                    background-color: #1c1c1c;
                 }
                 tr:hover {
-                    background-color: #f0f0ff;
+                    background-color: #222;
                 }
                 a {
                     text-decoration: none;
-                    color: blue;
+                    color: #ddd;
+                    font-weight: bold;
                 }
                 a:hover {
                     text-decoration: underline;
                 }
                 .notimportant {
-                    color: #666;
+                    color: #888;
                     font-size: 75%;
                 }
                 

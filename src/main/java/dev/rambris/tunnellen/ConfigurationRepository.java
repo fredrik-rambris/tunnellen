@@ -65,7 +65,7 @@ public class ConfigurationRepository {
                 .filter(Map.class::isInstance)
                 .map(Map.class::cast)
                 .map(m -> new Database(
-                        Database.Kind.valueOf(((String) m.get("type")).toUpperCase()),
+                        Database.Kind.valueOf(((String) m.get("kind")).toUpperCase()),
                         (String) m.get("name"),
                         (String) m.get("username")
                 ))

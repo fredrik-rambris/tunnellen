@@ -8,3 +8,33 @@ portForwards:
     localPort: 9000
     remotePort: 8080
     startOnStartup: true
+    type: http
+  - context: my-dev-environment
+    target: service/my-service
+    namespace: default
+    localPort: 9001
+    remotePort: 8080
+    startOnStartup: true
+    type: http
+  - context: my-prod-environment
+    target: service/my-db
+    namespace: default
+    localPort: 9100
+    remotePort: 8080
+    startOnStartup: true
+    type: database
+    database:
+      kind: postgresql
+      name: bigdatabase
+      username: bigdbuser
+  - context: my-dev-environment
+    target: service/my-db
+    namespace: default
+    localPort: 9101
+    remotePort: 8080
+    startOnStartup: true
+    type: database
+    database:
+      kind: postgresql
+      name: bigdatabase
+      username: bigdbuser
