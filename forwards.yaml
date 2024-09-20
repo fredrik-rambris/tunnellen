@@ -1,5 +1,6 @@
 ---
 port: 3000
+killProc: false
 keepAlive: 60
 portForwards:
   - context: my-prod-environment

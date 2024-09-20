@@ -162,7 +162,7 @@ public class Main {
                 web = new Web(config);
                 web.start();
             }
-        } catch (IOException ex) {
+        } catch (IOException | InterruptedException ex) {
             log.error(ex.getMessage());
         }
     }

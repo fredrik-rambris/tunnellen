@@ -5,7 +5,10 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -23,9 +26,18 @@ public class Web {
     private Configuration config;
     private HttpServer server;
 
-    public Web(Configuration config) throws IOException {
+    public Web(Configuration config) throws IOException, InterruptedException {
         this.config = config;
-        this.server = HttpServer.create(new InetSocketAddress(config.port()), 0);
+        try {
+            this.server = HttpServer.create(new InetSocketAddress(config.port()), 0);
+        } catch (BindException e) {
+            if (config.killProc() && System.getProperty("os.name").toLowerCase().contains("win")) {
+                killProcessUsingPort(config.port());
+                this.server = HttpServer.create(new InetSocketAddress(config.port()), 0);
+            } else {
+                throw e;
+            }
+        }
         this.server.createContext("/", this::handleHttp);
     }
 
@@ -129,8 +141,8 @@ public class Web {
         });
 
         var rest = config.portForwards().stream().filter(t -> config.groups().stream().noneMatch(g -> g.equals(t.getGroup()))).sorted(Comparator.comparing(Tunnel::isStartOnStartup).reversed().thenComparing(Tunnel::getTarget).thenComparing(Tunnel::getContext)).map(t -> tunnel(t, host)).collect(Collectors.joining("\n"));
-        if(!rest.isBlank()) {
-            if(!config.groups().isEmpty()) out.append("<tr><th class=\"groupheader\" colspan=\"4\">Other</th></tr>\n");
+        if (!rest.isBlank()) {
+            if (!config.groups().isEmpty()) out.append("<tr><th class=\"groupheader\" colspan=\"4\">Other</th></tr>\n");
             out.append(rest);
         }
 
@@ -162,7 +174,15 @@ public class Web {
     }
 
     private String target(Tunnel tun) {
-        return tun.getTarget() + "<span class=\"notimportant\">:" + tun.getDestinationPort() + Optional.ofNullable(tun.getNamespace()).filter(f -> !f.equalsIgnoreCase("default")).map(ns -> " (" + ns + ")").orElse("") + "</span>";
+        var target = Optional.of(tun.getTarget().split("\\/", 2))
+                .map(parts -> {
+                    if (parts.length == 2) {
+                        return "<span class=\"targettype\">" + parts[0] + "</span>/<span class=\"targetname\">" + parts[1] + "</span>";
+                    } else {
+                        return parts[1];
+                    }
+                }).get();
+        return target + "<span class=\"notimportant\">:" + tun.getDestinationPort() + Optional.ofNullable(tun.getNamespace()).filter(f -> !f.equalsIgnoreCase("default")).map(ns -> " (" + ns + ")").orElse("") + "</span>";
     }
 
     private String actionIcons(Tunnel tun, String host) {
@@ -223,6 +243,7 @@ public class Web {
                 html { margin: 0; padding: 0; }
                 body {
                     font-family: Arial, sans-serif;
+                    font-size: 90%;
                     margin: 0; padding: 0;
                     background-color: #151515;
                     color: #b0b0b0;
@@ -267,9 +288,18 @@ public class Web {
                 a:hover {
                     text-decoration: underline;
                 }
+                
+                .targettype {
+                    color: #888;
+                }
+                
+                .targetname {
+                    color: #ddd;
+                }
+                
                 .notimportant {
                     color: #888;
-                    font-size: 75%;
+                    font-size: 85%;
                 }
                 
                 .running {
@@ -344,4 +374,26 @@ public class Web {
                 db.username()
         );
     }
+
+    private void killProcessUsingPort(int port) throws IOException, InterruptedException {
+        var pid = getPidUsingPort(port);
+        if(pid.isPresent()) {
+            var killCommand = new String[]{"cmd.exe", "/c", "taskkill /F /PID " + pid.get()};
+            Runtime.getRuntime().exec(killCommand).waitFor();
+            log.warn("Killed previous process using port {}", port);
+        }
+    }
+
+    private Optional<String> getPidUsingPort(int port) throws IOException, InterruptedException {
+        var proc = new ProcessBuilder("cmd", "/c", "netstat -ano").start();
+        try (var isr = new InputStreamReader(proc.getInputStream()); var in = new BufferedReader(isr)) {
+            return in.lines().filter(l -> l.contains(":" + port)).map(l -> {
+                var parts = l.trim().split("\\s+");
+                return parts[parts.length - 1];
+            }).findAny();
+        } finally {
+            proc.waitFor();
+        }
+    }
+
 }

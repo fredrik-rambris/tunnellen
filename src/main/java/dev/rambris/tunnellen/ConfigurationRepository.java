@@ -17,7 +17,7 @@ public class ConfigurationRepository {
 
 
     static Configuration loadConfig(File file, int defaultPort) throws IOException {
-        var config = new Configuration(List.of(), List.of(), Duration.ofMinutes(1), Duration.ofMinutes(1), defaultPort);
+        var config = new Configuration(List.of(), List.of(), Duration.ofMinutes(1), Duration.ofMinutes(1), defaultPort, false);
 
 
         try (var in = new FileReader(file)) {
@@ -32,7 +32,9 @@ public class ConfigurationRepository {
                             parsePortForwards(m.get("portForwards")),
                             parseDuration(m.get("keepAliveInterval"), Duration.ofMinutes(1)),
                             parseDuration(m.get("refreshInterval"), Duration.ofMinutes(1)),
-                            getAsInt(m.getOrDefault("port", 3000))))
+                            getAsInt(m.getOrDefault("port", 3000)),
+                            getAsBoolean(m.get("killProc"), false)
+                            ))
                     .orElse(config);
         } catch(IOException e) {
             System.err.println("Could not load config file: " + e.getMessage());
