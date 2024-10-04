@@ -93,8 +93,10 @@ public class Tunnel implements Comparable<Tunnel> {
             log.info("Checking tunnel");
             sock.connect(new InetSocketAddress(InetAddress.getLoopbackAddress(), localPort), 2000);
             lastCheck = LocalDateTime.now();
+            log.debug("Tunnel is alive");
             return true;
         } catch (IOException e) {
+            log.debug("Tunnel is not alive: {}", e.getMessage());
             return false;
         }
     }

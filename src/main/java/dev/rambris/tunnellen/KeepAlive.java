@@ -39,6 +39,7 @@ public class KeepAlive {
                 .parallelStream()
                 .filter(e -> running && e.getLastCheck().isBefore(LocalDateTime.now().minusMinutes(1)))
                 .forEach(t -> {
+                    log.debug("Checking tunnel {}:{} (started:{})", t.getContext(), t.getTarget(), t.isStarted());
                     if (t.isStarted() && !t.isAlive()) {
                         log.info("Restarting tunnel");
                         t.stop();
