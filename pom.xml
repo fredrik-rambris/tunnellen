@@ -4,12 +4,12 @@
 
     <groupId>dev.rambris</groupId>
     <artifactId>tunnellen</artifactId>
-    <version>1.3</version>
+    <version>1.4-SNAPSHOT</version>
 
     <scm>
         <url>https://github.com/fredrik-rambris/tunnellen/</url>
         <connection>scm:git:git@github.com:fredrik-rambris/tunnellen.git</connection>
-      <tag>v1.3</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <properties>
