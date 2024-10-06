@@ -72,6 +72,8 @@
                 <version>3.1.1</version>
                 <configuration>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <scmCommentPrefix>[skip-ci] </scmCommentPrefix>
+                    <pushChanges>false</pushChanges>
                 </configuration>
             </plugin>
 
