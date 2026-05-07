@@ -21,7 +21,6 @@ public class KeepAlive {
         this.keepAliveInterval = keepAliveInterval;
     }
 
-
     public void addTunnel(Tunnel tunnel) {
         var newTunnels = new ArrayList<>(tunnels);
         newTunnels.add(tunnel);
@@ -35,9 +34,9 @@ public class KeepAlive {
     }
 
     private void checkTunnels() {
-        tunnels
-                .parallelStream()
-                .filter(e -> running && e.getLastCheck().isBefore(LocalDateTime.now().minusMinutes(1)))
+        var threshold = LocalDateTime.now().minus(keepAliveInterval);
+        tunnels.stream()
+                .filter(e -> running && e.getLastCheck().isBefore(threshold))
                 .forEach(t -> {
                     log.debug("Checking tunnel {}:{} (started:{})", t.getContext(), t.getTarget(), t.isStarted());
                     if (t.isStarted() && !t.isAlive()) {
@@ -49,7 +48,7 @@ public class KeepAlive {
     }
 
     public void start() {
-        if(!running) {
+        if (!running) {
             timer = new Timer("Keepalive");
             timer.schedule(new TimerTask() {
                 @Override
@@ -63,7 +62,7 @@ public class KeepAlive {
     }
 
     public void stop() {
-        if(running) {
+        if (running) {
             running = false;
             timer.cancel();
             timer = null;
@@ -72,7 +71,7 @@ public class KeepAlive {
 
     public void setKeepAliveInterval(Duration keepAliveInterval) {
         this.keepAliveInterval = keepAliveInterval;
-        if(running) {
+        if (running) {
             stop();
             start();
         }

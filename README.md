@@ -26,5 +26,9 @@ Tunnellen is a tool to manage port forwards to Kubernetes resources. It allows y
 
 3. Run the tool:
     ```sh
-    java -jar target/tunnellen-<version>-with-dependencies.jar
+    java -jar target/tunnellen-<version>.jar
     ```
+
+## Configuration
+All options are read from forwards.yaml in the working directory by default. This can be overridden by
+using the command line option --config=/path/to/forwards.yaml.

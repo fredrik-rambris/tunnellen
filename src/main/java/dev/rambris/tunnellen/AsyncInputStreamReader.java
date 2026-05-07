@@ -1,42 +1,33 @@
 package dev.rambris.tunnellen;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.BufferedReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.function.Consumer;
 
 public class AsyncInputStreamReader {
-    private boolean running = true;
-    private Thread thread;
+    private static final Logger log = LoggerFactory.getLogger(AsyncInputStreamReader.class);
+    private final Thread thread;
+
     public AsyncInputStreamReader(InputStream is, Consumer<String> consumer) {
         thread = Thread.ofVirtual()
                 .start(() -> {
-                    var buffer = new StringBuffer();
-                    try {
-                        while (running) {
-                            if(is.available()==0) {
-                                Thread.sleep(100);
-                                continue;
-                            }
-
-                            var b = is.read();
-
-                            if(b=='\n' || b=='\r' || b==-1 && !buffer.isEmpty()) {
-                                consumer.accept(buffer.toString());
-                                buffer.setLength(0);
-                            } else if(b==-1) {
-                                break;
-                            } else {
-                                buffer.append((char)b);
-                            }
-
+                    try (var reader = new BufferedReader(new InputStreamReader(is))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            consumer.accept(line);
                         }
-                    } catch (Exception __) {
-                        __.printStackTrace();
+                    } catch (Exception e) {
+                        log.error("Error reading input stream", e);
                     }
                 });
     }
 
     public void stop() {
-        running = false;
+        thread.interrupt();
         try {
             thread.join(200);
         } catch (InterruptedException e) {

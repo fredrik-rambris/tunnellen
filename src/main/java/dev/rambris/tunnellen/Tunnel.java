@@ -90,7 +90,7 @@ public class Tunnel implements Comparable<Tunnel> {
 
     public boolean isAlive() {
         try (var sock = new Socket()) {
-            log.info("Checking tunnel");
+            log.debug("Checking tunnel");
             sock.connect(new InetSocketAddress(InetAddress.getLoopbackAddress(), localPort), 2000);
             lastCheck = LocalDateTime.now();
             log.debug("Tunnel is alive");
@@ -180,11 +180,11 @@ public class Tunnel implements Comparable<Tunnel> {
     @Override
     public String toString() {
         return "Tunnel{" +
-               "context='" + context + '\'' +
-               ", target='" + target + '\'' +
-               ", namespace=" + namespace +
-               ", localPort=" + localPort +
-               ", destinationPort='" + destinationPort + '\'' +
-               '}';
+                "context='" + context + '\'' +
+                ", target='" + target + '\'' +
+                ", namespace=" + namespace +
+                ", localPort=" + localPort +
+                ", destinationPort='" + destinationPort + '\'' +
+                '}';
     }
 }
