@@ -1,0 +1,26 @@
+port: 3000
+killProc: false
+keepAliveInterval: 60
+refreshInterval: 60
+portForwards:
+  - context: my-prod-environment
+    target: service/bokus-reader-service-public
+    namespace: default
+    localPort: 12500
+    remotePort: 8080
+    startOnStartup: true
+    type: http
+  - context: my-test-environment
+    target: service/bokus-reader-service-public
+    namespace: default
+    localPort: 12501
+    remotePort: 8080
+    startOnStartup: false
+    type: http
+  - context: my-dev-environment
+    target: service/bokus-reader-service-public
+    namespace: default
+    localPort: 12502
+    remotePort: 8080
+    startOnStartup: false
+    type: http

@@ -54,11 +54,15 @@ class PortAllocatorTest {
 
     @Test
     void nextServiceIndexAgainstRealNewForwardsFixture() throws Exception {
-        var file = new File("new-forwards.yaml");
+        // Was reading the developer's own untracked new-forwards.yaml from the
+        // working directory -- fine locally, but ConfigurationRepository#loadConfig
+        // calls System.exit(1) when the file is missing, which killed the whole
+        // forked test JVM on CI (no such file there). Use a checked-in fixture
+        // with the same shape instead.
+        var file = new File("src/test/resources/fixtures/high-index-forwards.yaml");
         var config = ConfigurationRepository.loadConfig(file, 3000);
-        // Highest index currently in use in new-forwards.yaml is 125
-        // (bokus-reader-service-public at 12500/12501/12502), so the next
-        // free allocation is 126.
+        // Highest index in the fixture is 125 (bokus-reader-service-public at
+        // 12500/12501/12502), so the next free allocation is 126.
         assertEquals(126, PortAllocator.nextServiceIndex(config));
     }
 
