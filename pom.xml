@@ -118,6 +118,11 @@
                     <tagNameFormat>v@{project.version}</tagNameFormat>
                     <scmCommentPrefix>[skip-ci] </scmCommentPrefix>
                     <pushChanges>true</pushChanges>
+                    <!-- No distributionManagement - this project isn't published to a Maven
+                         repo, GitHub Actions builds+attaches the jar to the GitHub Release
+                         instead. release:performs default goal is "deploy", which fails
+                         without a repository element; install is all we need here. -->
+                    <goals>install</goals>
                 </configuration>
             </plugin>
 
