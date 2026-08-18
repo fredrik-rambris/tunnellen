@@ -16,8 +16,10 @@ jobs:
     # pom.xml's scmCommentPrefix) to avoid a redundant build when that commit
     # lands on master via a plain branch push -- but a tag push (the actual
     # release trigger) must still build regardless of that message, or the
-    # release job below (which needs this one) never runs.
-    if: "!contains(github.event.head_commit.message, '[skip-ci]') || startsWith(github.ref, 'refs/tags/v')"
+    # release job below (which needs this one) never runs. Uses startsWith,
+    # not contains, so a commit that merely mentions "[skip-ci]" somewhere in
+    # its body (like this one) doesn't accidentally skip itself.
+    if: "!startsWith(github.event.head_commit.message, '[skip-ci]') || startsWith(github.ref, 'refs/tags/v')"
     runs-on: ubuntu-latest
 
     steps:
