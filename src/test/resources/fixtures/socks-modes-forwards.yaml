@@ -1,0 +1,34 @@
+port: 3000
+killProc: false
+keepAliveInterval: 60
+refreshInterval: 60
+groups:
+  - dev
+portForwards:
+  - context: bhg-dev
+    mode: socks
+    group: dev
+    localPort: 19000
+  - context: bhg-dev
+    mode: socks
+    group: dev
+    localPort: 19001
+    socksUsername: staticuser
+    socksPassword: staticpass
+  - context: bhg-dev
+    mode: service
+    dependsOn: bhg-dev
+    target: service/play-esales-search
+    namespace: default
+    localPort: 11402
+    remotePort: 8080
+    group: dev
+    type: http
+  - group: dev
+    context: bhg-dev
+    target: service/legacy-direct
+    namespace: default
+    localPort: 11502
+    remotePort: 8080
+    startOnStartup: true
+    type: http

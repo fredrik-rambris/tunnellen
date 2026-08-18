@@ -1,0 +1,70 @@
+{% extends "layout.peb" %}
+{% block content %}
+{% if notFound %}
+<h1 class="h3 mb-3">Edit tunnel</h1>
+<p>Tunnel not found (already deleted?).</p>
+<p><a href="/list?edit=1">&larr; Back to tunnel list</a></p>
+{% else %}
+<h1 class="h3 mb-3">Edit tunnel</h1>
+<p class="text-secondary">Context (fixed): {{ context }}</p>
+<form method="get" action="/editTunnel" class="col-lg-6">
+<input type="hidden" name="id" value="{{ id }}">
+<input type="hidden" name="submit" value="1">
+
+<div class="mb-3">
+<label class="form-label">Target</label>
+<input type="text" name="target" value="{{ target }}" class="form-control">
+</div>
+
+<div class="mb-3">
+<label class="form-label">Namespace</label>
+<input type="text" name="namespace" value="{{ namespace }}" class="form-control">
+</div>
+
+<div class="row mb-3">
+<div class="col">
+<label class="form-label">Local port</label>
+<input type="number" name="localPort" value="{{ localPort }}" class="form-control">
+</div>
+<div class="col">
+<label class="form-label">Remote port</label>
+<input type="text" name="remotePort" value="{{ remotePort }}" class="form-control">
+</div>
+</div>
+
+<div class="mb-3">
+<label class="form-label">Type</label>
+<select name="type" class="form-select">
+{% for opt in typeOptions %}
+<option value="{{ opt.value }}"{% if opt.selected %} selected{% endif %}>{{ opt.value }}</option>
+{% endfor %}
+</select>
+</div>
+
+<div class="mb-3">
+<label class="form-label">Group</label>
+<input type="text" name="group" value="{{ group }}" class="form-control">
+</div>
+
+<div class="form-check mb-3">
+<input type="checkbox" name="startOnStartup" value="1" class="form-check-input" id="startOnStartup"{% if startOnStartup %} checked{% endif %}>
+<label class="form-check-label" for="startOnStartup">Start on startup</label>
+</div>
+
+{% if isSocksClusterTunnel %}
+<p class="text-secondary">This is a cluster SOCKS tunnel definition &mdash; its connection mode isn't editable here; use the config file.</p>
+{% else %}
+<div class="mb-3">
+<label class="form-label">Connection</label>
+<select name="mode" class="form-select">
+<option value="socks"{% if isService %} selected{% endif %}>SOCKS (rides the cluster's shared proxy tunnel for {{ context }}; falls back to a direct port-forward automatically if that cluster tunnel isn't running)</option>
+<option value="port-forward"{% if not isService %} selected{% endif %}>Direct kubectl port-forward (bypasses SOCKS entirely, one kubectl process for this tunnel)</option>
+</select>
+</div>
+{% endif %}
+
+<button type="submit" class="btn btn-primary">Save (stages change, not written to disk yet)</button>
+</form>
+<p class="mt-3"><a href="/list?edit=1">&larr; Back to tunnel list</a></p>
+{% endif %}
+{% endblock %}

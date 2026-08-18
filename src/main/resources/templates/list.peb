@@ -1,0 +1,42 @@
+{% extends "layout.peb" %}
+{% block content %}
+<div class="toolbar">
+  <a href="/addService" class="btn btn-success btn-sm">+ Add service</a>
+  {% if editMode %}
+    <a href="/saveChanges" class="btn btn-warning btn-sm">Save changes</a>
+    <a href="/discardChanges" class="btn btn-outline-secondary btn-sm" title="Undo: discard unsaved changes and reload from disk">&#x21B6; Undo</a>
+  {% else %}
+    <a href="/list?edit=1" class="btn btn-secondary btn-sm">Edit tunnels</a>
+  {% endif %}
+  {% if clusterBadges is not empty %}
+  <div class="clusterstrip">
+    {% for b in clusterBadges %}
+      <span class="clusterpair">
+        <span class="badge clusterstatus {% if b.alive %}clusterup text-bg-success{% else %}clusterdown text-bg-danger{% endif %}" title="Cluster tunnel {{ b.context }}: {% if b.alive %}up{% else %}down{% endif %}">&#9679; {{ b.context }}</span><span class="badge text-bg-secondary conncount" title="Active connections relayed through {{ b.context }}">{{ b.connections }}</span>
+      </span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+{% for section in sections %}
+<details open class="mb-4">
+<summary class="fw-bold text-capitalize mb-2" style="cursor:pointer;">{{ section.title }}</summary>
+<div class="table-responsive">
+<table class="table table-striped table-hover table-bordered tunnel-grid align-middle">
+<thead>
+<tr><th>Service</th>{% for c in section.columns %}<th>{{ c }}</th>{% endfor %}</tr>
+</thead>
+<tbody>
+{% for row in section.rows %}
+<tr>
+<td>{{ row.targetHtml|raw }}</td>
+{% for cellHtml in row.cells %}<td>{{ cellHtml|raw }}</td>{% endfor %}
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</details>
+{% endfor %}
+{% endblock %}

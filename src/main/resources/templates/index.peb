@@ -1,0 +1,5 @@
+{% extends "layout.peb" %}
+{% block content %}
+<h1 class="h3 mb-3">Tunnellen</h1>
+<a href="/list" class="btn btn-primary">List tunnels</a>
+{% endblock %}

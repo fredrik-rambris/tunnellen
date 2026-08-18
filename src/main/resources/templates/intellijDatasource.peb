@@ -1,0 +1,26 @@
+{% autoescape false %}#DataSourceSettings#
+#LocalDataSource: {{ name }}
+#BEGIN#
+<?xml version="1.0"?>
+<data-source source="LOCAL" name="{{ name }}" group="{{ group }}" uuid="{{ uuid }}">
+  <database-info product="{{ dbKind.product }}" version="" jdbc-version="{{ dbKind.jdbcVersion }}" driver-name="{{ dbKind.driverName }}" driver-version="{{ dbKind.driverVersion }}" dbms="{{ dbKind.dbms }}" exact-version="" exact-driver-version="{{ dbKind.exactDriverVersion }}">
+  <identifier-quote-string >{{ dbKind.identifierQuoteString }}</identifier-quote-string>
+</database-info>
+  <case-sensitivity plain-identifiers="lower" quoted-identifiers="exact"/>
+  <driver-ref>{{ dbKind.jdbcPrefix }}</driver-ref>
+  <synchronize>true</synchronize>
+  <jdbc-driver>{{ dbKind.driverClass }}</jdbc-driver>
+  <jdbc-url>{{ jdbcUrl }}</jdbc-url>
+  <secret-storage>master_key</secret-storage>
+  <user-name>{{ username }}</user-name>
+  <schema-mapping>
+    <introspection-scope>
+      <node kind="database" qname="@">
+        <node kind="schema" qname="@"/>
+      </node>
+    </introspection-scope>
+  </schema-mapping>
+  <working-dir>$ProjectFileDir$</working-dir>
+</data-source>
+#END#
+{% endautoescape %}

@@ -1,0 +1,36 @@
+port: 3000
+killProc: false
+keepAliveInterval: 60
+refreshInterval: 60
+groups:
+  - prod
+  - dev
+portForwards:
+  - group: prod
+    context: my-prod-environment
+    target: service/my-service
+    namespace: default
+    localPort: 9000
+    remotePort: 8080
+    startOnStartup: true
+    type: http
+  - group: dev
+    context: my-dev-environment
+    target: service/my-service
+    namespace: default
+    localPort: 9001
+    remotePort: 8080
+    startOnStartup: false
+    type: http
+  - group: prod
+    context: my-prod-environment
+    target: service/my-db
+    namespace: default
+    localPort: 9100
+    remotePort: 5432
+    startOnStartup: true
+    type: database
+    database:
+      kind: postgresql
+      name: bigdatabase
+      username: bigdbuser

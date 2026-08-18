@@ -1,0 +1,65 @@
+{% extends "layout.peb" %}
+{% block content %}
+<h1 class="h3 mb-3">Add service</h1>
+{% if message %}<div class="alert alert-info">{{ message }}</div>{% endif %}
+
+<form method="get" action="/addService" class="col-lg-6">
+<input type="hidden" name="submit" value="1">
+
+<div class="mb-3">
+<label class="form-label">Context (for service discovery only &mdash; tunnels are created for all of {{ knownContexts|join(", ") }}):</label>
+<select name="context" class="form-select">
+{% for ctx in contexts %}
+<option value="{{ ctx.value }}"{% if ctx.selected %} selected{% endif %}>{{ ctx.value }}</option>
+{% endfor %}
+</select>
+</div>
+
+<div class="mb-3 d-flex gap-2 align-items-end">
+<div class="flex-grow-1">
+<label class="form-label">Namespace</label>
+<input type="text" name="namespace" value="{{ namespace }}" class="form-control">
+</div>
+<button type="submit" name="refresh" value="1" formaction="/addService" class="btn btn-outline-secondary">Refresh service list</button>
+</div>
+
+<div class="mb-3">
+<div class="alert alert-secondary py-2 px-3 mb-0 small">
+Next available ports: {% for p in portPreview %}<strong>{{ p.context }}</strong>:{{ p.port }}{% if not loop.last %}, {% endif %}{% endfor %}
+</div>
+</div>
+
+{% if candidates is empty %}
+<p class="text-secondary fst-italic">No candidate services found in context "{{ context }}", namespace "{{ namespace }}" (either kubectl returned nothing, or every service there is already tunnelled).</p>
+{% else %}
+<div class="mb-3">
+<label class="form-label">Service / port</label>
+<select name="service" class="form-select">
+{% for opt in serviceOptions %}
+<option value="{{ opt.value }}">{{ opt.label }}</option>
+{% endfor %}
+</select>
+</div>
+
+<div class="mb-3">
+<label class="form-label">Type</label>
+<select name="type" class="form-select">
+<option value="http" selected>http</option>
+<option value="database">database</option>
+</select>
+</div>
+
+<div class="mb-3">
+<label class="form-label">Connection</label>
+<select name="mode" class="form-select">
+<option value="socks" selected>SOCKS (rides on the cluster's shared proxy tunnel; falls back to a direct port-forward automatically if that cluster tunnel isn't running)</option>
+<option value="port-forward">Direct kubectl port-forward (bypasses SOCKS entirely, one kubectl process per tunnel)</option>
+</select>
+</div>
+
+<button type="submit" class="btn btn-success">Add service</button>
+{% endif %}
+</form>
+
+<p class="mt-3"><a href="/list">&larr; Back to tunnel list</a></p>
+{% endblock %}
