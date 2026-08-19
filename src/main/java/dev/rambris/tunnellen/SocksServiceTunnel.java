@@ -85,7 +85,7 @@ public class SocksServiceTunnel implements TunnelRunner {
         try {
             serverSocket = new ServerSocket();
             serverSocket.setReuseAddress(true);
-            serverSocket.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), localPort));
+            serverSocket.bind(new InetSocketAddress((InetAddress)null, localPort));
             log.info("Started SOCKS service tunnel on local port {}", localPort);
         } catch (IOException e) {
             log.warn("Failed to open local server socket: {}", e.getMessage());
