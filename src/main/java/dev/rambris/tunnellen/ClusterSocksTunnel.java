@@ -3,10 +3,13 @@ package dev.rambris.tunnellen;
 import ch.qos.logback.classic.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Random;
 import java.util.UUID;
@@ -343,10 +346,49 @@ public class ClusterSocksTunnel {
         return portForwardProcess != null && portForwardProcess.isAlive();
     }
 
+    /**
+     * Health check that performs a real SOCKS5 greeting + username/password
+     * auth (RFC 1928/1929) against the proxy, then closes. A bare
+     * connect-and-close is not enough: {@code kubectl port-forward} accepts
+     * the local connection even when the pod side is broken, and the proxy
+     * logs "Failed to get version byte: EOF" for every such probe. Closing
+     * after a successful auth is silent on the proxy side.
+     */
     public boolean isAlive() {
         try (var sock = new Socket()) {
             log.debug("Checking cluster SOCKS tunnel");
             sock.connect(new InetSocketAddress(InetAddress.getLoopbackAddress(), localPort), 2000);
+            sock.setSoTimeout(5000);
+            var out = sock.getOutputStream();
+            var in = new DataInputStream(sock.getInputStream());
+
+            // Greeting: version 5, one method, username/password (0x02)
+            out.write(new byte[]{0x05, 0x01, 0x02});
+            out.flush();
+            var methodReply = new byte[2];
+            in.readFully(methodReply);
+            if (methodReply[0] != 0x05 || methodReply[1] != 0x02) {
+                log.debug("Cluster SOCKS tunnel is not alive: unexpected method reply {} {}", methodReply[0], methodReply[1]);
+                return false;
+            }
+
+            var user = username.getBytes(StandardCharsets.UTF_8);
+            var pass = password.getBytes(StandardCharsets.UTF_8);
+            var auth = new ByteArrayOutputStream();
+            auth.write(0x01);
+            auth.write(user.length);
+            auth.write(user);
+            auth.write(pass.length);
+            auth.write(pass);
+            out.write(auth.toByteArray());
+            out.flush();
+            var authReply = new byte[2];
+            in.readFully(authReply);
+            if (authReply[1] != 0x00) {
+                log.debug("Cluster SOCKS tunnel is not alive: auth rejected (status {})", authReply[1]);
+                return false;
+            }
+
             log.debug("Cluster SOCKS tunnel is alive");
             return true;
         } catch (IOException e) {
