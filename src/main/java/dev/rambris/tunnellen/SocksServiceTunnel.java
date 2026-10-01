@@ -120,7 +120,7 @@ public class SocksServiceTunnel implements TunnelRunner {
             var proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(InetAddress.getLoopbackAddress(), clusterTunnel.getLocalPort()));
             remote = new Socket(proxy);
             String remoteHost = bareTarget() + "." + namespace + ".svc.cluster.local";
-            remote.connect(new InetSocketAddress(remoteHost, Integer.parseInt(remotePort)), 10000);
+            remote.connect(InetSocketAddress.createUnresolved(remoteHost, Integer.parseInt(remotePort)), 10000);
             liveSockets.add(remote);
             log.debug("Relaying connection to {}:{}", remoteHost, remotePort);
 

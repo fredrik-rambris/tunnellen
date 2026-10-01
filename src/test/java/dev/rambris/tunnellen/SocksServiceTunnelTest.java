@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -15,8 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * BIG-REFACTOR.md 2.1 verification: proves the JDK's built-in SOCKS5
@@ -88,6 +86,67 @@ class SocksServiceTunnelTest {
         }
 
         assertTrue(socksServer.sawSuccessfulAuth(), "fake SOCKS5 server should have observed a successful username/password auth");
+    }
+
+    @Test
+    void connectRequestCarriesInClusterHostnameAndRemotePort() throws Exception {
+        int localPort = startTunnel("service/play-esales-search", "search", "8080");
+
+        roundTrip(localPort, "ping\n");
+
+        var request = socksServer.lastConnectRequest();
+        assertNotNull(request, "fake SOCKS5 server should have received a CONNECT request");
+        assertEquals(0x03, request.atyp(), "destination should be sent as a DOMAINNAME so the proxy resolves it in-cluster");
+        assertEquals("play-esales-search.search.svc.cluster.local", request.host());
+        assertEquals(8080, request.port());
+    }
+
+    @Test
+    void nullNamespaceFallsBackToDefaultInConnectRequest() throws Exception {
+        int localPort = startTunnel("plain-name", null, "5432");
+
+        roundTrip(localPort, "ping\n");
+
+        var request = socksServer.lastConnectRequest();
+        assertNotNull(request, "fake SOCKS5 server should have received a CONNECT request");
+        assertEquals("plain-name.default.svc.cluster.local", request.host());
+        assertEquals(5432, request.port());
+    }
+
+    @Test
+    void remoteServiceNameIsNotResolvedLocally() throws Exception {
+        RecordingInetAddressResolverProvider.CLUSTER_LOOKUPS.clear();
+        int localPort = startTunnel("service/no-local-dns", "default", "9999");
+
+        roundTrip(localPort, "ping\n");
+
+        assertEquals(List.of(), RecordingInetAddressResolverProvider.CLUSTER_LOOKUPS,
+                "in-cluster service names must be resolved by the SOCKS proxy, never by the local resolver");
+    }
+
+    /** Starts echo server, fake SOCKS5 server and a service tunnel to {@code target}; returns the tunnel's local port. */
+    private int startTunnel(String target, String namespace, String remotePort) throws Exception {
+        echoServer = new EchoServer();
+        echoServer.start();
+        socksServer = new FakeSocks5Server("tunneluser", "tunnelpass", echoServer.getPort());
+        socksServer.start();
+        clusterTunnel = new ClusterSocksTunnel("fake-context", socksServer.getPort(), "tunneluser", "tunnelpass");
+
+        int localPort = findFreePort();
+        serviceTunnel = new SocksServiceTunnel("fake-context", target, namespace, localPort, remotePort, clusterTunnel);
+        serviceTunnel.start();
+        waitUntil(serviceTunnel::isRunning, 5000);
+        return localPort;
+    }
+
+    private static void roundTrip(int localPort, String message) throws IOException {
+        byte[] payload = message.getBytes(StandardCharsets.UTF_8);
+        try (var client = new Socket(InetAddress.getLoopbackAddress(), localPort)) {
+            client.setSoTimeout(5000);
+            client.getOutputStream().write(payload);
+            client.getOutputStream().flush();
+            assertArrayEquals(payload, readExactly(client.getInputStream(), payload.length));
+        }
     }
 
     private static int findFreePort() throws IOException {
@@ -185,6 +244,11 @@ class SocksServiceTunnelTest {
         private ServerSocket server;
         private Thread thread;
         private volatile boolean sawSuccessfulAuth = false;
+        private volatile ConnectRequest lastConnectRequest;
+
+        /** Destination of a SOCKS5 CONNECT as sent by the client; {@code host} is the textual address. */
+        record ConnectRequest(int atyp, String host, int port) {
+        }
 
         FakeSocks5Server(String expectedUser, String expectedPass, int upstreamPort) {
             this.expectedUser = expectedUser;
@@ -214,6 +278,10 @@ class SocksServiceTunnelTest {
 
         boolean sawSuccessfulAuth() {
             return sawSuccessfulAuth;
+        }
+
+        ConnectRequest lastConnectRequest() {
+            return lastConnectRequest;
         }
 
         void stop() throws IOException {
@@ -261,18 +329,20 @@ class SocksServiceTunnelTest {
                 int cmd = readByte(in);
                 readByte(in); // RSV
                 int atyp = readByte(in);
+                String host;
                 switch (atyp) {
-                    case 0x01 -> readN(in, 4); // IPv4
+                    case 0x01 -> host = InetAddress.getByAddress(readN(in, 4)).getHostAddress(); // IPv4
                     case 0x03 -> {
                         int len = readByte(in);
-                        readN(in, len);
+                        host = new String(readN(in, len), StandardCharsets.US_ASCII);
                     }
-                    case 0x04 -> readN(in, 16); // IPv6
+                    case 0x04 -> host = InetAddress.getByAddress(readN(in, 16)).getHostAddress(); // IPv6
                     default -> {
                         return;
                     }
                 }
-                readN(in, 2); // DST.PORT (ignored — we always connect upstream)
+                byte[] portBytes = readN(in, 2); // DST.PORT (recorded, but we always connect upstream)
+                lastConnectRequest = new ConnectRequest(atyp, host, ((portBytes[0] & 0xFF) << 8) | (portBytes[1] & 0xFF));
                 if (cver != 0x05 || cmd != 0x01) {
                     out.write(replyBytes(0x07)); // command not supported
                     out.flush();
